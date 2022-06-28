@@ -12,3 +12,6 @@ seaborn
 prefetch_generator
 imageio
 scikit-learn
+onnx
+onnxruntime
+onnx-simplifier
