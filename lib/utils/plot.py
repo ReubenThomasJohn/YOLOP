@@ -52,8 +52,12 @@ def show_seg_result(img, result, index, epoch, save_dir=None, is_ll=False,palett
 
     # convert to BGR
     color_seg = color_seg[..., ::-1]
-    # print(color_seg.shape)
+    # color_seg = cv2.resize(color_seg, (960, 540))
+    
     color_mask = np.mean(color_seg, 2)
+    color_mask = cv2.resize(color_mask, (img.shape[1], img.shape[0]))
+    color_seg = cv2.resize(color_seg, (img.shape[1], img.shape[0]))
+    # print(color_seg.shape, color_mask.shape, img.shape)
     img[color_mask != 0] = img[color_mask != 0] * 0.5 + color_seg[color_mask != 0] * 0.5
     # img = img * 0.5 + color_seg * 0.5
     img = img.astype(np.uint8)
