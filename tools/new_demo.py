@@ -1,8 +1,8 @@
-import argparse
 import os, sys
 import shutil
 import time
 from pathlib import Path
+from typing_extensions import Self
 import imageio
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,38 +31,44 @@ from tqdm import tqdm
 normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
-# resize = transforms.Resize((1080, 1920))
 
 transform=transforms.Compose([
             transforms.ToTensor(), #resize,
             normalize
         ])
 
-def detect(cfg,opt): #check opt
-    logger, _, _ = create_logger(
-        cfg, cfg.LOG_DIR, 'demo')
+def detect(cfg): #check opt
 
-    device = select_device(logger,opt.device)
-    if os.path.exists(opt.save_dir):  # output dir
-        shutil.rmtree(opt.save_dir)  # delete dir
-    os.makedirs(opt.save_dir)  # make new dir
+    opt_device = 'gpu'
+    opt_save_dir = 'inference/output/'
+    opt_weights = 'weights/End-to-end.pth'
+    opt_source = '/home/reuben/Projects/YOLOP/inference/images/0ace96c3-48481887.jpg'
+    opt_img_size = 640
+    opt_conf_thres = 0.4
+    opt_iou_thres = 0.3
+
+    device = select_device(logger=None, device=opt_device)
+    if os.path.exists(opt_save_dir):  # output dir
+        shutil.rmtree(opt_save_dir)  # delete dir
+    os.makedirs(opt_save_dir)  # make new dir
     half = device.type != 'cpu'  # half precision only supported on CUDA
 
     # Load model
     model = get_net(cfg)
-    checkpoint = torch.load(opt.weights, map_location= device)
+    checkpoint = torch.load(opt_weights, map_location= device)
     model.load_state_dict(checkpoint['state_dict'])
     model = model.to(device)
     if half:
         model.half()  # to FP16
 
     # Set Dataloader
-    if opt.source.isnumeric():
+    if opt_source.isnumeric():
         cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(opt.source, img_size=opt.img_size)
+        dataset = LoadStreams(opt_source, img_size=opt_img_size)
         bs = len(dataset)  # batch_size
     else:
-        dataset = LoadImages(opt.source, img_size=opt.img_size)
+        print('Entered')
+        dataset = LoadImages(opt_source, img_size=opt_img_size)
         bs = 1  # batch_size
 
 
@@ -75,7 +81,7 @@ def detect(cfg,opt): #check opt
     t0 = time.time()
 
     vid_path, vid_writer = None, None
-    img = torch.zeros((1, 3, opt.img_size, opt.img_size), device=device)  # init img
+    img = torch.zeros((1, 3, opt_img_size, opt_img_size), device=device)  # init img
     _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
     model.eval()
 
@@ -99,13 +105,13 @@ def detect(cfg,opt): #check opt
 
         # Apply NMS
         t3 = time_synchronized()
-        det_pred = non_max_suppression(inf_out, conf_thres=opt.conf_thres, iou_thres=opt.iou_thres, classes=None, agnostic=False)
+        det_pred = non_max_suppression(inf_out, conf_thres=opt_conf_thres, iou_thres=opt_iou_thres, classes=None, agnostic=False)
         t4 = time_synchronized()
 
         nms_time.update(t4-t3,img.size(0))
         det=det_pred[0]
 
-        save_path = str(opt.save_dir +'/'+ Path(path).name) if dataset.mode != 'stream' else str(opt.save_dir + '/' + "web.mp4")
+        save_path = str(opt_save_dir +'/'+ Path(path).name) if dataset.mode != 'stream' else str(opt_save_dir + '/' + "web.mp4")
 
         _, _, height, width = img.shape
         h,w,_=img_det.shape
@@ -161,21 +167,6 @@ def detect(cfg,opt): #check opt
     # print('Done. (%.3fs)' % (time.time() - t0))
     # print('inf : (%.4fs/frame)   nms : (%.4fs/frame)' % (inf_time.avg,nms_time.avg))
 
-
-
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='weights/End-to-end.pth', help='model.pth path(s)')
-    # parser.add_argument('--source', type=str, default='inference/videos/MOT16-13-raw.mp4', help='source')  # file/folder   ex:inference/images
-    parser.add_argument('--source', type=str, default='inference/rgb_streams/video_output.mp4', help='source')
-    parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
-    parser.add_argument('--device', default='gpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--save-dir', type=str, default='inference/output', help='directory to save results')
-    parser.add_argument('--augment', action='store_true', help='augmented inference')
-    parser.add_argument('--update', action='store_true', help='update all models')
-    opt = parser.parse_args()
     with torch.no_grad():
-        detect(cfg,opt)
+        detect(cfg)

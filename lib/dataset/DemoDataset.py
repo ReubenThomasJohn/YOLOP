@@ -87,6 +87,9 @@ class LoadImages:  # for inference
         # Padded resize
         img, ratio, pad = letterbox_for_img(img0, new_shape=self.img_size, auto=True)
         h, w = img.shape[:2]
+        # print('h0, w0:\n', h0, w0)
+        # print('h, w:\n', h, w)
+        # print('pad:\n', pad)
         shapes = (h0, w0), ((h / h0, w / w0), pad)
 
         # Convert
@@ -172,10 +175,14 @@ class LoadStreams:  # multiple IP or RTSP cameras
         img0 = self.imgs.copy()
 
         h0, w0 = img0[0].shape[:2]
+        
         img, _, pad = letterbox_for_img(img0[0], self.img_size, auto=self.rect and self.auto)
 
         # Stack
         h, w = img.shape[:2]
+        print('h0, w0:\n', h0, w0)
+        print('h, w:\n', h, w)
+        print('pad:\n', pad)
         shapes = (h0, w0), ((h / h0, w / w0), pad)
 
         # Convert
