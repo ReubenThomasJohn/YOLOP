@@ -1,3 +1,8 @@
+# Refactored implementation of YOLO-P
+This repo contains a refactored (and simplified) implementation on YOLO-P, for use with ROS. 
+The ```detect()``` function in the ```tools/run_yolop.py``` contains this implementation. A few changes were made, the most
+significant of these being the changes in the way the data is loaded for inference. The original file is  ```lib/dataset/DemoDataset.py```, and the converted file is ```lib\dataset\DemoDataset1.py```.
+
 <div align="left">   
 
 ## You Only :eyes: Once for Panoptic ​ :car: Perception
