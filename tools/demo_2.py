@@ -37,45 +37,45 @@ transform=transforms.Compose([
             normalize
         ])
 
+opt_device = 'gpu'
+opt_save_dir = 'inference/output/'
+opt_weights = 'weights/End-to-end.pth'
+# opt_source = '/home/reuben/Projects/YOLOP/inference/images/0ace96c3-48481887.jpg'
+opt_img_size = 640
+opt_conf_thres = 0.4
+opt_iou_thres = 0.3
+
+device = select_device(logger=None, device=opt_device)
+print(device)
+if os.path.exists(opt_save_dir):  # output dir
+    shutil.rmtree(opt_save_dir)  # delete dir
+os.makedirs(opt_save_dir)  # make new dir
+half = device.type != 'cpu'  # half precision only supported on CUDA
+
+# Load model
+model = get_net(cfg)
+checkpoint = torch.load(opt_weights, map_location= device)
+model.load_state_dict(checkpoint['state_dict'])
+model = model.to(device)
+if half:
+    model.half()  # to FP16
+
+# dataset = LoadImages(image, img_size=opt_img_size)
+# bs = 1  # batch_size
+
+# Get names and colors
+names = model.module.names if hasattr(model, 'module') else model.names
+colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
+
+# vid_path, vid_writer = None, None
+img = torch.zeros((1, 3, opt_img_size, opt_img_size), device=device)  # init img
+_ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
+model.eval()
+
 def detect(cfg, image): #check opt
-
-    opt_device = 'gpu'
-    opt_save_dir = 'inference/output/'
-    opt_weights = 'weights/End-to-end.pth'
-    # opt_source = '/home/reuben/Projects/YOLOP/inference/images/0ace96c3-48481887.jpg'
-    opt_img_size = 640
-    opt_conf_thres = 0.4
-    opt_iou_thres = 0.3
-
-    device = select_device(logger=None, device=opt_device)
-    print(device)
-    if os.path.exists(opt_save_dir):  # output dir
-        shutil.rmtree(opt_save_dir)  # delete dir
-    os.makedirs(opt_save_dir)  # make new dir
-    half = device.type != 'cpu'  # half precision only supported on CUDA
-
-    # Load model
-    model = get_net(cfg)
-    checkpoint = torch.load(opt_weights, map_location= device)
-    model.load_state_dict(checkpoint['state_dict'])
-    model = model.to(device)
-    if half:
-        model.half()  # to FP16
-
-    # dataset = LoadImages(image, img_size=opt_img_size)
-    # bs = 1  # batch_size
-
-    # Get names and colors
-    names = model.module.names if hasattr(model, 'module') else model.names
-    colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
 
     # Run inference
     t0 = time.time()
-
-    # vid_path, vid_writer = None, None
-    img = torch.zeros((1, 3, opt_img_size, opt_img_size), device=device)  # init img
-    _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
-    model.eval()
 
     inf_time = AverageMeter()
     nms_time = AverageMeter()
@@ -142,12 +142,15 @@ def detect(cfg, image): #check opt
     return img_det           
 
 if __name__ == '__main__':
-    vid_path = 'inference/rgb_streams/shortened_file-60fps.avi'
+    # vid_path = 'inference/rgb_streams/shortened_file-60fps.avi'
     # vid_path = 'inference/videos/1.mp4'
+    vid_path = 'inference/rgb_streams/video_output.mp4'
     cap = cv2.VideoCapture(vid_path)
     with torch.no_grad():
         while cap.isOpened():
             ret, frame = cap.read()
+            # frame = cv2.resize(frame, (640,540))
+            print(frame.shape)
 
             det_frame = detect(cfg, frame)
 
